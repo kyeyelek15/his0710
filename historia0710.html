@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uporządkuj swoją wiedzę – II Rzeczpospolita</title>
+<style>
+:root{
+  --page:#e6ebf2; --sheet:#f4f6fa; --line:#6f7a8b; --ink:#1d3fa6; --gap:22px;
+  --hand:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --ui:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--page);font-family:var(--ui);color:#1c2230;-webkit-text-size-adjust:100%}
+
+/* ---------- pasek sterowania ---------- */
+.bar{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid #c6cedb;box-shadow:0 2px 8px rgba(20,30,60,.08)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 10px 6px;scrollbar-width:thin}
+.tab{flex:0 0 auto;border:1px solid #b5bfd0;background:#f1f4f9;color:#2a3550;border-radius:999px;padding:6px 12px;font:600 12.5px var(--ui);cursor:pointer;white-space:nowrap}
+.tab:hover{background:#e4eaf4}
+.tab.on{background:#2c4f9e;border-color:#2c4f9e;color:#fff}
+.ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:4px 10px 9px;font-size:12.5px}
+.grp-b{display:flex;align-items:center;gap:5px}
+.grp-b .lbl{color:#4b566d;font-weight:600}
+.btn{border:1px solid #2c4f9e;background:#fff;color:#2c4f9e;border-radius:6px;padding:5px 10px;font:600 12.5px var(--ui);cursor:pointer}
+.btn:hover{background:#eaf0fb}
+.btn.fill{background:#2c4f9e;color:#fff}
+.btn.fill:hover{background:#244486}
+.count{margin-left:auto;color:#4b566d;font-variant-numeric:tabular-nums}
+.hint{width:100%;color:#6b7589;font-size:11.5px}
+
+/* ---------- karta pracy ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:14px 10px 40px}
+.sheet{display:none;position:relative;background:var(--sheet);border:1px solid #c3cbd9;border-radius:10px;padding:22px 22px 26px;box-shadow:0 4px 16px rgba(30,45,80,.10)}
+.sheet.on{display:block}
+.meta{text-align:right;font-size:11px;letter-spacing:.04em;color:#5d7396;margin:-8px 0 8px}
+.pg{text-align:right;margin-top:16px;font:700 13px var(--ui);color:#fff}
+.pg span{display:inline-block;background:#2c4f9e;padding:3px 10px;border-radius:3px}
+.stitle{font:800 25px var(--ui);color:#2c4f9e;padding-bottom:6px;border-bottom:1.5px solid #2c4f9e;margin:0 0 22px}
+.toprow{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:var(--gap);margin-bottom:26px}
+
+/* ---------- drzewo ---------- */
+.tree{margin-bottom:6px}
+.tree + .tree{margin-top:34px}
+.root{position:relative;max-width:470px;margin:0 auto;text-align:center;font-weight:700;font-size:15px;padding:11px 16px;
+  background:linear-gradient(#d3dae6,#b6c1d3);border:1px solid #8794ab;border-radius:3px;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+.root::after{content:"";position:absolute;left:50%;top:100%;height:15px;border-left:1.5px solid var(--line)}
+.cols{position:relative;display:grid;grid-template-columns:repeat(var(--n),1fr);gap:var(--gap);margin-top:15px;padding-top:15px;align-items:start}
+.cols::before{content:"";position:absolute;top:0;
+  left:calc((100% - (var(--n) - 1) * var(--gap)) / var(--n) / 2);
+  right:calc((100% - (var(--n) - 1) * var(--gap)) / var(--n) / 2);
+  border-top:1.5px solid var(--line)}
+.col{position:relative;min-width:0}
+.col::before{content:"";position:absolute;left:50%;top:-15px;height:15px;border-left:1.5px solid var(--line)}
+.grp + .grp{margin-top:18px}
+.colhead{text-align:center;font-weight:700;font-size:13.5px;padding:10px 12px;background:linear-gradient(#e0e5ee,#c7d0de);border:1px solid #8f9bb0;border-radius:3px}
+.stack{margin-left:16px;border-left:1.5px solid var(--line);padding:13px 0 0 14px;display:flex;flex-direction:column;gap:13px}
+
+/* ---------- karteczka z pytaniem ---------- */
+.card{position:relative;background:#fff;border:1px solid #8f98a6;border-radius:3px;padding:12px 14px 9px;text-align:center;font-size:13px;line-height:1.35;box-shadow:0 1px 0 rgba(0,0,0,.06)}
+.stack > .card::before{content:"";position:absolute;left:-14px;top:20px;width:14px;border-top:1.5px solid var(--line)}
+.stack > .card:last-child::after{content:"";position:absolute;left:-17px;top:22px;bottom:-1px;width:5px;background:var(--sheet)}
+.ct{font-weight:700;font-size:13.5px;margin-bottom:6px}
+.q{margin:6px 0 1px}
+.q:first-of-type,.ct + .q{margin-top:0}
+.arow{display:flex;align-items:flex-end;gap:8px;margin:2px 0 4px;text-align:left}
+.arow .ans:first-child{flex:1;min-width:0}
+
+/* ---------- odpowiedzi ---------- */
+.ans{display:block;position:relative;cursor:pointer;font-family:var(--hand);font-size:15px;line-height:24px;min-height:24px;color:var(--ink);
+  padding:0 5px;text-align:left;border-radius:2px;
+  background-image:linear-gradient(to bottom,transparent 23px,#8d95a3 23px,#8d95a3 24px);background-size:100% 24px;
+  transition:background-color .15s,color .15s;-webkit-tap-highlight-color:transparent}
+.ans:focus-visible{outline:2px solid #2c4f9e;outline-offset:1px}
+.ans.hid{color:transparent;background-color:rgba(29,63,166,.07);user-select:none;-webkit-user-select:none}
+.ans.hid:hover{background-color:rgba(29,63,166,.17)}
+.ans.note{display:inline-block;flex:0 0 auto;background-image:none;white-space:nowrap;padding:0 6px}
+.lst{margin:3px 0 2px;text-align:left}
+.bli{display:flex;align-items:flex-start;gap:5px}
+.bli::before{content:"•";line-height:24px;font-size:14px;color:#222}
+.bli .ans{flex:1;min-width:0}
+.bgroup{display:flex;align-items:stretch;gap:4px}
+.bgroup .items{flex:1;min-width:0}
+.ans.brace{display:flex;align-items:center;gap:6px;padding:0 6px 0 2px;font-size:20px;line-height:1}
+.ans.brace .curly{display:block;align-self:stretch;width:9px;margin:2px 0;border:2px solid currentColor;border-left:0;border-radius:0 12px 12px 0}
+.ans.brace b{font-weight:400}
+
+/* ---------- oko ---------- */
+.eye{position:absolute;top:2px;right:2px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;padding:0;border:0;background:transparent;color:#9aa3b3;cursor:pointer;border-radius:4px;opacity:.75}
+.eye:hover{color:var(--ink);background:#eaf0fb;opacity:1}
+
+/* ---------- wąskie ekrany ---------- */
+@media (max-width:860px){
+  .sheet{padding:16px 12px 20px}
+  .toprow{grid-template-columns:1fr}
+  .cols{grid-template-columns:1fr;padding-top:0;margin-top:14px;row-gap:22px}
+  .cols::before,.col::before,.root::after{display:none}
+  .stitle{font-size:21px}
+  .count{margin-left:0}
+}
+@media print{
+  .bar,.eye{display:none}
+  .sheet{display:block!important;break-after:page;box-shadow:none}
+}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="tabs" id="tabs"></div>
+  <div class="ctrl">
+    <div class="grp-b"><span class="lbl">Ta karta:</span>
+      <button class="btn" id="showPage">Pokaż</button>
+      <button class="btn" id="hidePage">Ukryj</button></div>
+    <div class="grp-b"><span class="lbl">Wszystkie karty:</span>
+      <button class="btn fill" id="showAll">Pokaż</button>
+      <button class="btn fill" id="hideAll">Ukryj</button></div>
+    <div class="count" id="count"></div>
+    <div class="hint">Kliknij linię z odpowiedzią, aby ją odkryć lub zakryć. Ikona oka w rogu karteczki przełącza wszystkie odpowiedzi w tej karteczce.</div>
+  </div>
+</div>
+
+<div class="wrap" id="wrap"></div>
+
+<script>
+/* ===== pomocnicze konstruktory danych ===== */
+const q=(q,a,n)=>({q,a,n});            // pytanie + odpowiedź (n = dopisek obok odpowiedzi)
+const p=t=>({q:t});                    // sam tekst pytania
+const l=(q,l,br)=>({q,l,br});          // pytanie + lista punktowana (br = [od,do,'znak'] nawias klamrowy)
+const c=(...i)=>({i});                 // karteczka bez tytułu
+const ct=(t,...i)=>({t,i});            // karteczka z tytułem
+const g=(head,...cards)=>({head,cards});
+
+/* ===== DANE KART PRACY ===== */
+const SHEETS=[
+
+/* 1 ------------------------------------------------------------ */
+{tab:'Przewrót majowy i rządy sanacji',root:'Przewrót majowy i rządy sanacji',meta:'VII. II Rzeczpospolita',
+ cols:[
+  [ g('Kryzys rządów parlamentarnych',
+      c(q('Jak nazywano zjawisko dbania o interesy partii bardziej niż o los państwa?','Partyjniactwo')),
+      c(q('Jak nazywano koalicję, która objęła rządy 10 maja 1926 r.?','Chjeno - Piast'))),
+    g('Przewrót majowy',
+      c(q('Którego dnia rozpoczął się przewrót majowy?','12.05 1926r.')),
+      c(q('Kto był liderem grupy dokonującej przewrotu?','Józef Piłsudski')),
+      c(p('Kto w efekcie przewrotu został:'),q('premierem,','Kazimierz Bartel'),q('prezydentem?','Ignacy Mościcki')),
+      c(q('Co z łaciny oznacza „sanacja” – słowo określające nową władzę?','uzdrowienie'))) ],
+  [ g('Rządy sanacji',
+      c(q('Pod jaką nazwą znany jest dokument z 2 sierpnia 1926 r., który modyfikował ustrój państwa?','Nowela Sierpniowa'),
+        q('Czyje uprawnienia zostały w ten sposób wzmocnione?','prezydenta')),
+      c(q('Jak nazywała się organizacja powołana przez polityków sanacji na wybory w 1928 r.?','Bezpartyjny Blok Współpracy z Rządem'),
+        q('Który polityk stał na jej czele?','Walery Sławek')),
+      c(q('Pod jaką nazwą jest znana konstytucja z 1935 r.?','Kwietniowa')),
+      c(q('W którym roku zmarł Józef Piłsudski?','(12.05) 1935r.')),
+      c(l('Którzy politycy sprawowali realną władzę w kraju po śmierci marszałka?',['Ignacy Mościcki','Józef Beck','Edward Rydz-Śmigły']))) ],
+  [ g('Sytuacja opozycji',
+      c(q('Jak nazywano sojusz partii lewicowych i ludowych zawiązany w 1928 r.?','centrolew')),
+      c(q('Jak potocznie nazywano wybory z 1930 r., po których opozycja została pozbawiona znaczenia politycznego?','wybory brzeskie')),
+      c(q('Jak nazywał się minister zamordowany w 1934 r. przez ukraińskich nacjonalistów?','Bronisław Pieracki')),
+      c(q('Gdzie powstał obóz dla przeciwników politycznych?','w Berezie Kartuskiej')),
+      c(q('Jak nazywano część obozu władzy, która odpowiadała za brutalną politykę wobec opozycji w latach 30. XX w.?','Grupa Pułkowników')),
+      c(q('Jaka organizacja o charakterze narodowym powstała w 1934 r.?','Obóz Narodowy Radykalny')),
+      c(q('Jakie stronnictwo opozycyjne wobec sanacji powstało na emigracji w Szwajcarii?','Front Morges'))) ]
+ ]},
+
+/* 2 ------------------------------------------------------------ */
+{tab:'Społeczeństwo i gospodarka II RP',title:'Uporządkuj swoją wiedzę',root:'Społeczeństwo i gospodarka II RP',meta:'VII. II Rzeczpospolita',
+ top:[
+  c(q('Ilu mieszkańców liczyła II Rzeczpospolita w 1921 r.?','27 mln')),
+  c(q('Jaka część mieszkańców kraju w 1921 r. żyła na wsi?','75%'))
+ ],
+ cols:[
+  [ g('Kwestie etniczne',
+      c(q('Jaką część mieszkańców Polski stanowili Polacy w 1921 r.?','69 %')),
+      c(p('Które mniejszości narodowe były najliczniejsze?'),q('14%','Ukraińcy'),q('8%','Żydzi')),
+      c(l('Które mniejszości zamieszkiwały wschodnią część II Rzeczypospolitej?',['Ukraińcy','Białorusini','Litwini','Żydzi','Tatarzy'],[3,4,'?'])),
+      c(l('Które mniejszości wyznaniowe były najliczniejsze?',['Grekokatolicy','Prawosławni','wyznawcy Judaizmu']))) ],
+  [ g('Gospodarka',
+      c(q('Jak nazywano gorzej rozwiniętą część Polski, m.in. Galicję i Kresy Wschodnie?','Polska B')),
+      c(l('Jakie reformy przeprowadził rząd Władysława Grabskiego?',['walutową','rolną'])),
+      c(l('Jakie waluty obowiązywały kolejno w Polsce?',['Marka Polska','złoty polski'])),
+      c(q('Pod jaką nazwą jest znany konflikt gospodarczy z Niemcami?','wojna celna'),q('Kiedy wybuchł ten spór?','w 1925r.'))) ],
+  [ g('Inwestycje',
+      c(q('Gdzie powstał największy port II Rzeczypospolitej?','w Gdyni'),q('Który polityk jest uznawany za ojca tego sukcesu?','Eugeniusz Kwiatkowski')),
+      c(q('Jak nazwano kompleks nowych inwestycji przemysłowych w widłach Wisły i Sanu?','Centralny Okręg Przemysłowy')),
+      c(q('Jak była nazywana linia kolejowa łącząca Górny Śląsk z Pomorzem?','Magistrala Węglowa')),
+      c(q('Pod jaką nazwą jest znany aktywny udział państwa w gospodarce, typowy dla II RP?','etatyzm'))) ]
+ ]},
+
+/* 3 ------------------------------------------------------------ */
+{tab:'Rządy parlamentarne',root:'Rządy parlamentarne',
+ cols:[
+  [ g('Konstytucja',
+      c(q('Jak od miesiąca uchwalenia nazywa się pierwszą konstytucję II RP?','konstytucję „Marcową”'),
+        q('Kiedy uchwalono konstytucję?','17.03 1921r'),
+        q('Na konstytucji którego państwa została oparta?','III republiki francuskiej')),
+      c(l('Z jakich izb miał składać się polski parlament?',['sejm','senat'])),
+      c(q('Ile lat miała trwać kadencja prezydenta?','7')),
+      c(l('Jakie rodzaje sądów powołała nowa konstytucja?',['powszechne','administracyjne','wojskowe']))) ],
+  [ g('Scena polityczna',
+      c(q('Przy jakiej ulicy w Warszawie zbudowano kompleks budynków parlamentu?','Wiejskiej')),
+      c(q('Jak nazywała się największa partia lewicowa?','Polska Partia Socjalistyczna')),
+      c(q('Kto w latach 1922–1928 pełnił funkcję marszałka sejmu?','Maciej Rataj')),
+      c(q('Jaka partia reprezentowała elektorat wiejski?','PSL'),
+        l('Jakie odłamy tej partii powstały?',['PSL - piast','PSL - wyzwolenie'])),
+      c(q('Jak nazywało się czołowe ugrupowanie narodowe?','Związek Ludowo Narodowy','→ endecja'),
+        q('Kto był jego liderem?','Roman Dmowski')),
+      c(q('Jak nazywała się prawicowa koalicja, która wygrała wybory w 1922 r., zwana potocznie Chjeną?','Chrześcijański Związek Jedności Narodowej'))) ],
+  [ g('Pierwszy prezydent',
+      c(q('Kto 9 grudnia 1922 r. został wybrany pierwszym prezydentem II RP?','Gabriel Narutowicz')),
+      c(q('Kiedy zastrzelono prezydenta?','16.12 1922r.')),
+      c(q('Kto został kolejnym prezydentem?','Stanisław Wojciechowski')),
+      c(q('Które środowisko polityczne poparło obu prezydentów?','PSL'))) ]
+ ]},
+
+/* 4 ------------------------------------------------------------ */
+{tab:'Odrodzenie Rzeczypospolitej',title:'Uporządkuj swoją wiedzę',root:'Odrodzenie Rzeczypospolitej',
+ cols:[
+  [ g('Odzyskanie niepodległości',
+      ct('Tymczasowy Rząd Ludowy Republiki Polskiej',
+        q('W którym mieście powstał?','Lublin'),
+        q('Którego dnia go zawiązano?','7.11.1918r'),
+        q('Kto został jego premierem?','Ignacy Daszyński')),
+      c(l('Gdzie powstały polskie ośrodki władzy w Galicji?',['Śląsk Cieszyński','Kraków'])),
+      c(q('Jaką polską instytucję zawiązali w Poznaniu endecy?','Naczelna Rada Ludowa')),
+      ct('Józef Piłsudski',
+        q('Gdzie do 10 listopada 1918 r. był więziony Piłsudski?','Twierdza Magdeburska'),
+        q('Którego dnia Piłsudski objął dowództwo nad armią?','11.11.1918r'),
+        q('Jaką funkcję objął w końcu listopada 1918 r.?','Tymczasowy Naczelnik Państwa'))) ],
+  [ g('Ustrój nowego państwa',
+      c(l('Jak nazywali się pierwsi premierzy?',['Jędrzej Moraczewski','Ignacy Jan Paderewski'])),
+      c(q('Jak nazywał się pierwszy parlament?','Sejm Ustawodawczy')),
+      c(q('Jak nazywał się akt prawny wydany 20 lutego 1919 r. regulujący działalność państwa?','Mała Konstytucja')),
+      c(q('W którym roku Polki otrzymały prawa wyborcze?','1918'))) ],
+  [ g('Trudne początki',
+      c(q('Które polskie miasto zalicza się do najbardziej zniszczonych w Europie w czasie I wojny?','Kalisz')),
+      c(q('Jakie wyzwanie stało przed władzami w kwestii regulacji prawa?','Unifikacja Systemu Prawnego')),
+      c(q('Na terenie którego byłego zaboru znajdowała się najlepsza infrastruktura?','Pruskiego')),
+      c(q('Na terenie którego byłego zaboru tory kolejowe miały inny rozstaw niż w reszcie kraju?','Rosyjskiego')),
+      ct('Podział administracyjny',
+        q('Na ile województw podzielono II Rzeczpospolitą?','16'),
+        q('Które województwo posiadało autonomię?','Śląskie'))) ]
+ ]},
+
+/* 5 ------------------------------------------------------------ */
+{tab:'Walka o granicę wschodnią',root:'Walka o granicę wschodnią',
+ cols:[
+  [ g('Relacje polsko-ukraińskie',
+      c(q('Jak nazwano państwo ukraińskie powstałe po upadku caratu?','Ukraińska Republika Ludowa')),
+      c(q('Które ziemie stanowiły obiekt sporu polsko-ukraińskiego?','Wschodnia Galicja')),
+      c(q('Jak określa się młodych polskich obrońców Lwowa?','Orlęta Lwowskie')),
+      c(q('Kto stał na czele państwa ukraińskiego?','Semen Petlura')),
+      c(q('Jakie miasto zajęły wspólnie 7 maja 1920 r. wojska polskie i ukraińskie?','Kijów'))),
+    g('Wileńszczyzna',
+      c(q('Kto dowodził oddziałami polskiego wojska, które zdobyły Wilno 9 października 1920 r.?','gen. Lucjan Żeligowski')),
+      c(q('Jak nazywano istniejące w latach 1920–1922 państwo obejmujące Wileńszczyznę?','Litwa Środkowa')),
+      c(q('Do którego państwa ostatecznie włączono Wilno?','do Polski'))) ],
+  [ g('Wojna polsko-bolszewicka',
+      c(q('Jak nazywał się dowódca wojsk rosyjskich na odcinku litewsko-białoruskim?','Michaił Tuchaczewski')),
+      c(q('Który premier udał się do Spa, aby prosić o wsparcie mocarstw zachodnich?','Władysław Grabski'),
+        q('Kto zastąpił go na stanowisku premiera?','Wincenty Witos')),
+      c(q('Jak nazywa się decydującą bitwę tej wojny?','bitwa warszawska'),
+        q('Kiedy została stoczona?','13.08 1920r → 25.08 1920')),
+      c(p('Kto pełnił w trakcie konfliktu funkcję:'),
+        q('naczelnika państwa,','Józef Piłsudski'),
+        q('szefa Sztabu Generalnego?','Tadeusz Rozwadowski')),
+      c(q('Gdzie stoczono bitwę na froncie południowym 31 sierpnia 1920 r.?','pod Komarowem'),
+        q('Którą formację wojsk bolszewickich rozbito?','Armię Konną Budionnego')),
+      c(q('Pod jaką nazwą przeszedł do historii kończący wojnę traktat podpisany 18 marca 1921 r.?','traktat ryski'))) ]
+ ]},
+
+/* 6 ------------------------------------------------------------ */
+{tab:'Polityka zagraniczna II RP',root:'Polityka zagraniczna II Rzeczypospolitej',
+ top:[
+  c(q('Gdzie w 1925 r. odbyła się konferencja, podczas której pominięto kwestie bezpieczeństwa granicy polsko-niemieckiej?','w Locarno')),
+  c(q('Jak nazywała się część Czechosłowacji zagarnięta przez Polskę 2 października 1938 r.?','Zaolzie'))
+ ],
+ cols:[
+  [ g('Polityka międzynarodowa sanacji',
+      c(q('Kto pełnił funkcję polskiego ministra spraw zagranicznych w latach 1932–1939?','Józef Beck')),
+      c(q('Jak nazywał się pomysł stworzenia sojuszu państw Europy Środkowej?','idea Międzymorza')),
+      c(q('Jak określano postawę polskich władz polegającą na wspieraniu ruchów narodowych na terenie ZSRS?','polityka prometejska')),
+      c(q('Jak nazywano strategię dyplomatyczną stosowaną wobec Niemiec i ZSRS?','polityka równej odległości')),
+      c(q('Jakie porozumienie zostało zawarte w 1934 r. między Polską a Niemcami?','deklaracja o niestosowaniu przemocy'))) ],
+  [ g('Zagrożenie wojną',
+      c(l('Jakie żądania wystosowała III Rzesza wobec Polski w 1938 r.?',[
+        'włączenie wolnego miasta Gdańska do III Rzeszy',
+        'przystąpienie do paktu antykominternowskiego',
+        'zgodę na budowę autostrady i kolei łączącej Prusy wschodnie z resztą Niemiec'])),
+      c(l('Które państwa Europy Zachodniej zagwarantowały Polsce pomoc w przypadku wojny?',['Wielka Brytania','Francja'])),
+      c(q('Jak od nazwisk szefów dyplomacji Niemiec i ZSRS nazywa się pakt zawarty przez te państwa w 1939 r.?','pakt Ribbentrop - Mołotow'))) ]
+ ]},
+
+/* 7 ------------------------------------------------------------ */
+{tab:'Kultura i nauka w II RP',root:'Kultura i nauka w II Rzeczypospolitej',
+ cols:[
+  [ g('Oświata',
+      c(q('Jaki odsetek ludności byłych zaborów austriackiego i rosyjskiego stanowili analfabeci?','40%')),
+      c(q('Do którego roku życia obowiązywał powszechny obowiązek szkolny?','do 14')),
+      c(q('Który minister przeprowadził reformę edukacji w 1932 r.?','Janusz Jędrzejewicz')),
+      c(l('Gdzie powstały uniwersytety już w pierwszym roku niepodległości?',['Lublin','Poznań','Wilno']))) ],
+  [ g('Nauka',
+      c(q('Jak nazywała się instytucja koordynująca rozwój polskiej nauki?','Polska Akademia Umiejętności')),
+      c(l('Jak nazywali się czołowi przedstawiciele lwowskiej szkoły matematyki?',['Hugon Steinhaus','Stefan Banach'])),
+      c(l('Jakie samoloty zaprojektowali Polacy w okresie międzywojennym?',['PZL 37','RWD'])),
+      c(q('Który polski naukowiec wprowadził oznaczenie grup krwi?','Ludwik Hirszfeld'))) ],
+  [ g('Literatura',
+      c(l('Którzy starsi pisarze cieszyli się dużym autorytetem w pierwszych latach II RP?',['Władysław Reymont','Stefan Żeromski'])),
+      c(l('Kto był autorem najpopularniejszych powieści?',['Tadeusz Dołęga Mostowicz','Sergiusz Piasecki'])),
+      c(q('Jak nazywała się grupa warszawskich poetów, której członkiem był m.in. Julian Tuwim?','Skamander')),
+      c(l('Kto stworzył wybitne zespoły teatralne?',['Juliusz Osterwa','Leon Schiller']))) ]
+ ],
+ sub:{root:'Kultura i sport',cards:[
+  c(q('Który styl architektoniczny dominował w zabudowie Gdyni?','Modernizm')),
+  c(q('Która polska aktorka zdobyła sławę w Hollywood?','Pola Negri')),
+  c(q('Kto w 1928 r. zdobył pierwsze złoto olimpijskie dla Polski?','Halina Konopacka'))
+ ]}},
+
+/* 8 ------------------------------------------------------------ */
+{tab:'Granica zachodnia i południowa',title:'Uporządkuj swoją wiedzę',root:'Kształtowanie się granicy zachodniej i południowej',
+ top:[
+  c(q('Jak nazywano koncepcję Polski jednolitej etnicznie?','Inkorporacyjna'),q('Kto był jej zwolennikiem?','Roman Dmowski')),
+  c(q('Jak nazywano koncepcję Polski jako lidera grupy ściśle współpracujących państw?','Federacyjna'),q('Kto był jej zwolennikiem?','Józef Piłsudski'))
+ ],
+ cols:[
+  [ g('Powstanie wielkopolskie',
+      c(q('Która organizacja dążyła do rozpoczęcia powstania?','Polska Organizacja Wojskowa')),
+      c(q('Czyj przyjazd do Poznania stał się bezpośrednią przyczyną wybuchu powstania?','Ignacy Jan Paderewski')),
+      c(q('Którego dnia wybuchło powstanie?','27.12.1918r')),
+      c(l('Jak nazywali się przywódcy powstania?',['Stanisław Taczak','Józef Dowbor-Muśnicki'])),
+      c(q('Gdzie 16 lutego 1919 r. podpisano rozejm kończący walki?','w Trewirze'))) ],
+  [ g('Powstania śląskie',
+      c(p('W jakich latach wybuchły:'),q('I powstanie śląskie,','1919'),q('II powstanie śląskie,','1920'),q('III powstanie śląskie?','1921')),
+      ct('III powstanie śląskie',
+        q('Kto stał na czele?','Wojciech Korfanty'),
+        q('Gdzie stoczono największą bitwę powstania?','góra św. Anny')),
+      ct('Podział Śląska',
+        q('Które państwo otrzymało większą część Górnego Śląska?','Niemcy'),
+        q('Które z państw otrzymało bardziej uprzemysłowioną część Śląska?','Polska'))) ],
+  [ g('Granice północne i południowe',
+      c(q('Kiedy doszło do uroczystych zaślubin Polski z morzem?','10.02.1920r'),q('Kto dokonał tego aktu?','Józef Haller')),
+      c(q('Które miasto Pomorza stało się wolnym miastem?','Gdańsk')),
+      c(q('O jaki teren toczyły się spory terytorialne z Czechosłowacją?','Śląsk Cieszyński')),
+      c(l('W jakich krainach na północy Polski odbyły się plebiscyty w 1920 r.?',['Warmia','Mazury','Powiśle']))) ]
+ ]}
+];
+
+/* ===== budowanie DOM ===== */
+const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+const EYE='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+
+function setHidden(n,hide){
+  n.classList.toggle('hid',hide);
+  n.setAttribute('aria-pressed',String(!hide));
+  if(hide) n.setAttribute('aria-label','Odpowiedź zakryta – naciśnij, aby odkryć');
+  else n.removeAttribute('aria-label');
+}
+function ans(text,cls){
+  const s=el('span','ans'+(cls?' '+cls:''),text);
+  s.setAttribute('role','button'); s.tabIndex=0;
+  setHidden(s,true);
+  return s;
+}
+function card(cd){
+  const d=el('div','card');
+  const b=el('button','eye'); b.type='button'; b.title='Pokaż / ukryj odpowiedzi w tej karteczce'; b.setAttribute('aria-label','Pokaż lub ukryj odpowiedzi w tej karteczce'); b.innerHTML=EYE;
+  d.appendChild(b);
+  if(cd.t) d.appendChild(el('div','ct',cd.t));
+  cd.i.forEach(it=>{
+    if(it.q) d.appendChild(el('p','q',it.q));
+    if(it.a!=null){
+      const r=el('div','arow'); r.appendChild(ans(it.a));
+      if(it.n) r.appendChild(ans(it.n,'note'));
+      d.appendChild(r);
+    }
+    if(it.l){
+      const ul=el('div','lst'); const L=it.l; let i=0;
+      while(i<L.length){
+        if(it.br && i===it.br[0]){
+          const grp=el('div','bgroup'), items=el('div','items');
+          for(let j=it.br[0];j<=it.br[1];j++){
+            const r=el('div','bli'); r.appendChild(ans(L[j])); items.appendChild(r);
+          }
+          grp.appendChild(items);
+          const br=ans('','note brace'); br.innerHTML='<i class="curly"></i><b>'+it.br[2]+'</b>';
+          grp.appendChild(br); ul.appendChild(grp);
+          i=it.br[1]+1;
+        }else{
+          const r=el('div','bli'); r.appendChild(ans(L[i])); ul.appendChild(r); i++;
+        }
+      }
+      d.appendChild(ul);
+    }
+  });
+  return d;
+}
+function group(gr){
+  const w=el('div','grp');
+  w.appendChild(el('div','colhead',gr.head));
+  const st=el('div','stack');
+  gr.cards.forEach(cd=>st.appendChild(card(cd)));
+  w.appendChild(st);
+  return w;
+}
+function tree(rootText,colNodes){
+  const t=el('div','tree');
+  t.appendChild(el('div','root',rootText));
+  const cs=el('div','cols'); cs.style.setProperty('--n',colNodes.length);
+  colNodes.forEach(n=>{const col=el('div','col'); col.appendChild(n); cs.appendChild(col);});
+  t.appendChild(cs);
+  return t;
+}
+function buildSheet(s,idx){
+  const sh=el('section','sheet'); sh.id='sheet'+idx;
+  if(s.meta) sh.appendChild(el('div','meta',s.meta));
+  if(s.title) sh.appendChild(el('h2','stitle',s.title));
+  if(s.top){
+    const tr=el('div','toprow'); tr.style.setProperty('--n',s.top.length);
+    s.top.forEach(cd=>tr.appendChild(card(cd)));
+    sh.appendChild(tr);
+  }
+  sh.appendChild(tree(s.root,s.cols.map(groups=>{
+    const f=document.createDocumentFragment();
+    groups.forEach(gr=>f.appendChild(group(gr)));
+    const holder=el('div'); holder.appendChild(f); return holder;
+  })));
+  if(s.sub) sh.appendChild(tree(s.sub.root,s.sub.cards.map(cd=>card(cd))));
+  if(s.pg){const pg=el('div','pg'); pg.appendChild(el('span',null,s.pg)); sh.appendChild(pg);}
+  return sh;
+}
+
+const tabsEl=document.getElementById('tabs'), wrap=document.getElementById('wrap');
+SHEETS.forEach((s,i)=>{
+  const tb=el('button','tab',(i+1)+'. '+s.tab); tb.type='button'; tb.dataset.i=i;
+  tabsEl.appendChild(tb);
+  wrap.appendChild(buildSheet(s,i));
+});
+
+/* ===== logika ===== */
+function activeSheet(){return document.querySelector('.sheet.on');}
+function updateCount(){
+  const sh=activeSheet(); if(!sh) return;
+  const all=sh.querySelectorAll('.ans').length, open=sh.querySelectorAll('.ans:not(.hid)').length;
+  document.getElementById('count').textContent='Odkryto na tej karcie: '+open+' / '+all;
+}
+function show(i){
+  document.querySelectorAll('.sheet').forEach((s,k)=>s.classList.toggle('on',k===i));
+  document.querySelectorAll('.tab').forEach((t,k)=>{t.classList.toggle('on',k===i); if(k===i) t.scrollIntoView({inline:'center',block:'nearest'});});
+  updateCount();
+  window.scrollTo({top:0});
+}
+function setAll(root,hide){root.querySelectorAll('.ans').forEach(a=>setHidden(a,hide));updateCount();}
+
+tabsEl.addEventListener('click',e=>{const t=e.target.closest('.tab'); if(t) show(+t.dataset.i);});
+document.getElementById('showPage').onclick=()=>setAll(activeSheet(),false);
+document.getElementById('hidePage').onclick=()=>setAll(activeSheet(),true);
+document.getElementById('showAll').onclick=()=>setAll(document,false);
+document.getElementById('hideAll').onclick=()=>setAll(document,true);
+
+wrap.addEventListener('click',e=>{
+  const eye=e.target.closest('.eye');
+  if(eye){
+    const cd=eye.closest('.card'), anyHidden=cd.querySelector('.ans.hid');
+    cd.querySelectorAll('.ans').forEach(a=>setHidden(a,!anyHidden));
+    updateCount(); return;
+  }
+  const a=e.target.closest('.ans');
+  if(a){setHidden(a,!a.classList.contains('hid'));updateCount();}
+});
+wrap.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('ans')){
+    e.preventDefault(); setHidden(e.target,!e.target.classList.contains('hid')); updateCount();
+  }
+});
+
+show(0);
+</script>
+</body>
+</html>
